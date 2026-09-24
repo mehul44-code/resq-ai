@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+body { 
+  margin: 0; 
+  background: #020617; 
+  color: #e2e8f0;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+.grid-cell { transition: background-color 0.2s ease; }
+.pulse-animation { animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.robot-glow { 
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
+  animation: robot-pulse 1s ease-in-out infinite;
+}
+@keyframes robot-pulse { 0%, 100% { filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8)); } 50% { filter: drop-shadow(0 0 16px rgba(56, 189, 248, 1)); } }
+
+.fire-cell { animation: fire-flicker 0.5s ease-in-out infinite alternate; }
+@keyframes fire-flicker { 0% { background-color: #dc2626; } 100% { background-color: #f97316; } }
