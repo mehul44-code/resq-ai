@@ -1,6 +1,7 @@
 import type { WebSocketEvent } from '../types';
 
-const WS_BASE = 'ws://localhost:8000';
+const WS_BASE = (import.meta.env.VITE_API_BASE_URL || window.location.origin)
+  .replace(/^http/, 'ws');
 
 type EventHandler = (event: WebSocketEvent) => void;
 
@@ -8,13 +9,27 @@ class SimulationWebSocket {
   private ws: WebSocket | null = null;
   private handlers: Map<string, EventHandler[]> = new Map();
   private pingInterval: number | null = null;
+  private reconnectTimer: number | null = null;
+  private reconnectAttempts = 0;
+  private currentSimulationId: string | null = null;
 
   connect(simId: string): void {
     this.disconnect();
+    this.currentSimulationId = simId;
+    this.reconnectAttempts = 0;
+    this.open(simId);
+  }
+
+  private open(simId: string): void {
     this.ws = new WebSocket(`${WS_BASE}/ws/simulations/${simId}`);
     
     this.ws.onopen = () => {
       console.log('[WS] Connected to simulation', simId);
+      this.reconnectAttempts = 0;
+      this._dispatch('connection', {
+        type: 'connection',
+        data: { status: 'connected' },
+      });
       this.pingInterval = window.setInterval(() => {
         this.send({ action: 'ping' });
       }, 10000);
@@ -33,20 +48,41 @@ class SimulationWebSocket {
     this.ws.onclose = () => {
       console.log('[WS] Disconnected');
       if (this.pingInterval) clearInterval(this.pingInterval);
+      this._dispatch('connection', {
+        type: 'connection',
+        data: { status: 'disconnected' },
+      });
+      if (this.currentSimulationId && this.reconnectAttempts < 5) {
+        const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 10000);
+        this.reconnectAttempts += 1;
+        this.reconnectTimer = window.setTimeout(
+          () => this.currentSimulationId && this.open(this.currentSimulationId),
+          delay,
+        );
+      }
     };
-    
-    this.ws.onerror = (e) => console.error('[WS] Error:', e);
+
+    this.ws.onerror = (e) => {
+      console.error('[WS] Error:', e);
+      this._dispatch('connection', {
+        type: 'connection',
+        data: { status: 'error' },
+      });
+    };
   }
 
   disconnect(): void {
     if (this.pingInterval) clearInterval(this.pingInterval);
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.currentSimulationId = null;
+    this.reconnectAttempts = 0;
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
   }
 
-  send(data: any): void {
+  send(data: Record<string, unknown>): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
     }

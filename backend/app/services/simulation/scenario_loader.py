@@ -181,7 +181,7 @@ def _add_victim(env, vid, x, y, severity, health=80, urgency=0.5,
 def _add_fire(env, hid, cells, intensity=0.8, spread_rate=0.3, spread_interval=8):
     h = HazardState(
         id=hid, hazard_type=HazardType.FIRE,
-        position=cells[0], intensity=intensity,
+        position=Position(*cells[0]), intensity=intensity,
         spread_rate=spread_rate, spread_interval=spread_interval,
         affected_cells=[Position(x, y) for x, y in cells]
     )

@@ -87,7 +87,9 @@ export interface WebSocketEvent {
   type: string;
   tick?: number;
   timestamp?: string;
-  data?: any;
+  simulation_id?: string;
+  data?: unknown;
+  state?: SimulationState;
 }
 
 export interface Scenario {
@@ -97,6 +99,19 @@ export interface Scenario {
   difficulty: 'Easy' | 'Medium' | 'Hard' | 'Expert';
   grid_cols: number;
   grid_rows: number;
+}
+
+export interface ScenarioConfig extends Scenario {
+  seed: number;
+  tick_interval_ms: number;
+  initial_battery?: number;
+}
+
+export interface SimulationSummary {
+  id: string;
+  scenario_id: string;
+  status: SimulationStatus;
+  tick: number;
 }
 
 export interface Metrics {

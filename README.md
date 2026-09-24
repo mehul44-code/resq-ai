@@ -201,12 +201,12 @@ venv\Scripts\activate        # Windows
 source venv/bin/activate     # Linux/Mac
 
 # Start the server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Backend runs at: **http://localhost:8000**  
+Backend runs at: **http://127.0.0.1:8000**  
 API docs at: **http://localhost:8000/docs**  
-Health check: **http://localhost:8000/health**
+Health check: **http://127.0.0.1:8000/api/health**
 
 ---
 
@@ -214,10 +214,18 @@ Health check: **http://localhost:8000/health**
 
 ```bash
 cd frontend
+npm install
 npm run dev
 ```
 
 Frontend runs at: **http://localhost:5173**
+
+The Vite development server proxies `/api` and `/ws` to the backend at
+`http://localhost:8000`. To use another backend directly, set
+`VITE_API_BASE_URL` before starting Vite. The React dashboard uses the
+backend REST endpoints for scenarios, state, events, decisions, metrics, and
+simulation controls, and connects to `/ws/simulations/{simulation_id}` for
+live events.
 
 ---
 
@@ -230,7 +238,7 @@ cd backend
 venv\Scripts\activate
 
 # Run all tests
-pytest tests/ -v
+python -m pytest -q
 
 # Run specific test files
 pytest tests/test_triage.py -v

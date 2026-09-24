@@ -25,18 +25,19 @@ interface SimulationStore {
   setScenarios: (scenarios: Scenario[]) => void;
   setSelectedScenario: (id: string) => void;
   addEvent: (event: SimEvent) => void;
+  setEvents: (events: SimEvent[]) => void;
   addDecision: (decision: DecisionLog) => void;
   setDecisions: (decisions: DecisionLog[]) => void;
-  setMetrics: (metrics: Metrics) => void;
+  setMetrics: (metrics: Metrics | null) => void;
   setConnected: (connected: boolean) => void;
   setPage: (page: SimulationStore['currentPage']) => void;
   setSpeed: (speed: number) => void;
   toggleAILog: () => void;
   clearEvents: () => void;
-  updateStateFromWS: (data: any) => void;
+  updateStateFromWS: (data: SimulationState) => void;
 }
 
-export const useSimulationStore = create<SimulationStore>((set, get) => ({
+export const useSimulationStore = create<SimulationStore>((set) => ({
   simulationId: null,
   simulationState: null,
   scenarios: [],
@@ -54,6 +55,7 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
   setScenarios: (scenarios) => set({ scenarios }),
   setSelectedScenario: (id) => set({ selectedScenarioId: id }),
   addEvent: (event) => set(s => ({ events: [...s.events.slice(-200), event] })),
+  setEvents: (events) => set({ events }),
   addDecision: (decision) => set(s => ({ decisions: [...s.decisions.slice(-100), decision] })),
   setDecisions: (decisions) => set({ decisions }),
   setMetrics: (metrics) => set({ metrics }),
@@ -65,18 +67,6 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
   
   updateStateFromWS: (data) => {
     if (!data) return;
-    const current = get().simulationState;
-    set({
-      simulationState: {
-        ...current,
-        ...data,
-        tick: data.tick ?? current?.tick ?? 0,
-        grid: data.grid ?? current?.grid ?? [],
-        victims: data.victims ?? current?.victims ?? {},
-        hazards: data.hazards ?? current?.hazards ?? {},
-        robot: data.robot ?? current?.robot ?? null,
-        decision_history: data.decision_history ?? current?.decision_history ?? [],
-      } as SimulationState
-    });
+    set({ simulationState: data, decisions: data.decision_history || [] });
   }
 }));
