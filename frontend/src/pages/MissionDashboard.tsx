@@ -15,6 +15,13 @@ const STATUS_BADGE: Record<string, string> = {
   COMPLETED: 'bg-blue-900 text-blue-400',
   ABORTED: 'bg-red-900 text-red-400',
 };
+const CONNECTION_BADGE: Record<string, string> = {
+  CONNECTED: 'text-green-400',
+  CONNECTING: 'text-yellow-400',
+  RECONNECTING: 'text-orange-400',
+  DISCONNECTED: 'text-slate-500',
+  ERROR: 'text-red-400',
+};
 
 export const MissionDashboard: React.FC = () => {
   const store = useSimulationStore();
@@ -32,12 +39,17 @@ export const MissionDashboard: React.FC = () => {
     const update = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        setMapSize({ w: Math.floor(rect.width), h: Math.floor(rect.height) });
+        setMapSize({ w: Math.max(1, Math.floor(rect.width)), h: Math.max(1, Math.floor(rect.height)) });
       }
     };
     update();
+    const observer = new ResizeObserver(update);
+    if (containerRef.current) observer.observe(containerRef.current);
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+    };
   }, []);
   
   const handleStart = async () => {
@@ -52,69 +64,69 @@ export const MissionDashboard: React.FC = () => {
   const scenario = store.scenarios.find(s => s.id === store.selectedScenarioId);
   
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="dashboard-shell text-slate-100">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-700 shrink-0">
+      <header className="dashboard-header">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-sky-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">R</span>
+          <div className="w-10 h-10 bg-sky-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-950/40">
+            <span className="text-white font-bold text-lg">R</span>
           </div>
           <div>
-            <div className="text-sky-400 font-bold text-sm tracking-wide">ResQ-AI</div>
-            <div className="text-slate-500 text-xs">AI Rescue Robot — Disaster Management Agent</div>
+            <div className="text-sky-300 font-extrabold text-lg tracking-wide">RESQ-AI</div>
+            <div className="text-slate-500 text-[11px] uppercase tracking-[0.14em]">AI Rescue Robot · Disaster Management Agent</div>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 text-sm">{scenario?.name || 'No Scenario'}</span>
+        <div className="header-scenario flex items-center gap-3 min-w-0">
+          <span className="text-slate-300 text-sm font-semibold truncate">{scenario?.name || 'No Scenario'}</span>
           <span className={clsx('px-2 py-0.5 rounded text-xs font-mono font-bold', STATUS_BADGE[simStatus])}>
             {simStatus}
+          </span>
+          <span className={clsx('text-xs font-mono font-bold', CONNECTION_BADGE[store.connectionStatus])}>
+            ● {store.connectionStatus}
           </span>
           {simulationState?.tick !== undefined && (
             <span className="text-slate-500 text-xs font-mono">T={simulationState.tick}</span>
           )}
         </div>
         
-        <div className="flex items-center gap-1.5">
-          <button onClick={handleStart}
-            className="px-3 py-1.5 bg-green-700 hover:bg-green-600 text-white text-xs rounded font-mono font-bold transition-colors">
+        <div className="header-controls flex items-center justify-end gap-1.5 min-w-0">
+          <button onClick={handleStart} aria-label="Start simulation" className="control-button control-primary">
             ▶ START
           </button>
-          <button onClick={sim.pause}
-            className="px-3 py-1.5 bg-yellow-700 hover:bg-yellow-600 text-white text-xs rounded font-mono transition-colors">
+          <button onClick={sim.pause} aria-label="Pause simulation" className="control-button control-neutral">
             ⏸ PAUSE
           </button>
-          <button onClick={sim.resume}
-            className="px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white text-xs rounded font-mono transition-colors">
+          <button onClick={sim.resume} aria-label="Resume simulation" className="control-button control-secondary">
             ▶ RESUME
           </button>
-          <button onClick={sim.step}
-            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded font-mono transition-colors">
+          <button onClick={sim.step} aria-label="Advance one simulation step" className="control-button control-neutral">
             ▶| STEP
           </button>
-          <button onClick={sim.reset}
-            className="px-3 py-1.5 bg-red-900 hover:bg-red-800 text-white text-xs rounded font-mono transition-colors">
+          <button onClick={sim.reset} aria-label="Reset simulation" className="control-button control-danger">
             ↺ RESET
           </button>
-          <div className="w-px h-5 bg-slate-700 mx-1" />
-          <button onClick={() => store.setPage('scenarios')}
-            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded font-mono transition-colors">
+          <button onClick={() => store.setPage('scenarios')} className="control-button control-neutral">
             SCENARIOS
           </button>
           {store.simulationId && (
-            <button onClick={() => store.setPage('results')}
-              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded font-mono transition-colors">
+            <button onClick={() => store.setPage('results')} className="control-button control-neutral">
               RESULTS
             </button>
           )}
         </div>
       </header>
+      {store.error && (
+        <div className="px-4 py-2 bg-red-950/70 border-b border-red-800 text-red-300 text-xs font-mono">
+          Backend error: {store.error}
+        </div>
+      )}
       
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="dashboard-main">
         {/* Left: Disaster Map */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div ref={containerRef} className="flex-1 bg-slate-950 overflow-hidden relative">
+        <div className="map-panel">
+          <div ref={containerRef} className="map-viewport">
             {simulationState?.grid && simulationState.grid.length > 0 ? (
               <DisasterMap
                 grid={simulationState.grid}
@@ -140,20 +152,12 @@ export const MissionDashboard: React.FC = () => {
             )}
           </div>
           
-          {/* Bottom: Event Timeline */}
-          <div className="h-36 bg-slate-900 border-t border-slate-700 overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-800">
-              <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Event Timeline</span>
-              <span className="text-xs text-slate-600">({events.filter(e => !['tick_updated', 'battery_updated'].includes(e.event_type)).length} events)</span>
-            </div>
-            <EventTimeline events={events} />
-          </div>
         </div>
         
         {/* Right Panel */}
-        <div className="w-72 bg-slate-900 border-l border-slate-700 flex flex-col overflow-hidden">
+        <div className="ai-panel">
           {/* AI Decision Panel */}
-          <div className="flex-1 overflow-y-auto p-3">
+          <div>
             <div className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
               <span className="w-2 h-2 bg-sky-500 rounded-full"></span>
               AI Decision Panel
@@ -166,7 +170,7 @@ export const MissionDashboard: React.FC = () => {
           </div>
           
           {/* Victims / Events Tabs */}
-          <div className="border-t border-slate-700">
+          <div className="mt-4 border-t border-slate-700 pt-3">
             <div className="flex">
               {(['events', 'victims'] as const).map(tab => (
                 <button
@@ -181,12 +185,36 @@ export const MissionDashboard: React.FC = () => {
                 </button>
               ))}
             </div>
-            <div className="h-52 overflow-y-auto p-2">
+            <div className="h-48 overflow-y-auto p-2">
               {activeTab === 'victims' ? (
                 <VictimList victims={simulationState?.victims || {}} currentTarget={robot?.current_target || null} />
               ) : (
                 <EventTimeline events={events} maxVisible={20} />
               )}
+            </div>
+          </div>
+          <div className="dashboard-bottom">
+            <div className="timeline-panel">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-[0.16em]">Live Event Timeline</span>
+                <span className="text-[11px] text-slate-500 font-mono">{events.filter(e => !['tick_updated', 'battery_updated'].includes(e.event_type)).length} events</span>
+              </div>
+              <div className="timeline-scroll"><EventTimeline events={events} /></div>
+            </div>
+            <div className="metrics-strip">
+              {[
+                ['RESCUED', store.metrics ? `${store.metrics.rescued_victims}/${store.metrics.total_victims}` : '—', 'text-green-400'],
+                ['BATTERY', store.metrics ? `${store.metrics.battery_remaining.toFixed(0)}%` : robot ? `${robot.battery.toFixed(0)}%` : '—', 'text-yellow-400'],
+                ['REPLANS', store.metrics?.replans_count ?? robot?.replans_count ?? 0, 'text-orange-400'],
+                ['HAZARDS', store.metrics?.hazards_encountered ?? '—', 'text-red-400'],
+                ['DISTANCE', store.metrics?.total_distance_traveled ?? robot?.total_distance ?? '—', 'text-purple-400'],
+                ['SCORE', store.metrics?.mission_score.toFixed(0) ?? '—', 'text-cyan-400'],
+              ].map(([label, value, color]) => (
+                <div key={label} className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
+                  <div className="text-[10px] text-slate-500 tracking-wider">{label}</div>
+                  <div className={clsx('text-lg font-bold font-mono', color)}>{value}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -126,3 +126,17 @@ async def test_competition_demo_replans_after_fire_and_rescues_all(manager):
     assert session.env.robot.victims_rescued == 3
     assert session.env.robot.replans_count >= 1
     assert session.get_metrics()["mission_completion_rate"] == 100.0
+
+@pytest.mark.asyncio
+async def test_dynamic_fire_cannot_leave_robot_in_infinite_replanning(manager):
+    sim_id = manager.create_simulation("scenario_05")
+    session = manager.get_simulation(sim_id)
+    session.initialize()
+
+    for _ in range(500):
+        await session.step_once()
+        if session.env.robot.status in (RobotStatus.COMPLETED, RobotStatus.ABORTED):
+            break
+
+    assert session.env.robot.status in (RobotStatus.COMPLETED, RobotStatus.ABORTED)
+    assert session.env.robot.status != RobotStatus.REPLANNING

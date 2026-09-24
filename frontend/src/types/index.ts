@@ -3,6 +3,7 @@ export type CellType = 'empty' | 'wall' | 'obstacle' | 'victim' | 'fire' | 'smok
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type RobotStatus = 'IDLE' | 'ASSESSING' | 'SELECTING_TARGET' | 'PLANNING' | 'MOVING' | 'RESCUING' | 'REPLANNING' | 'RETURNING_TO_BASE' | 'CHARGING' | 'COMPLETED' | 'ABORTED' | 'STUCK';
 export type SimulationStatus = 'IDLE' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'ABORTED';
+export type ConnectionStatus = 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'DISCONNECTED' | 'ERROR';
 export type ActionType = 'MOVE_TO_TARGET' | 'RESCUE_VICTIM' | 'AVOID_HAZARD' | 'REPLAN' | 'RETURN_TO_BASE' | 'CHARGE' | 'WAIT' | 'ABORT' | 'COMPLETE_MISSION';
 
 export interface Position { x: number; y: number; }

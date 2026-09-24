@@ -74,6 +74,10 @@ export const AIDecisionPanel: React.FC<AIDecisionPanelProps> = ({ robot, lastDec
             <span className="text-slate-500">Position: </span>
             <span className="text-slate-300 font-mono">({robot?.position.x},{robot?.position.y})</span>
           </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-mono">
+            <div><span className="text-slate-500">Route: </span><span className={robot?.status === 'REPLANNING' ? 'text-orange-400' : 'text-cyan-400'}>{robot?.status === 'REPLANNING' ? 'INVALIDATED' : robot?.current_path?.length ? 'ACTIVE' : 'NONE'}</span></div>
+            <div><span className="text-slate-500">Replan: </span><span className="text-orange-400">{robot?.status === 'REPLANNING' ? 'IN PROGRESS' : `${robot?.replans_count || 0} total`}</span></div>
+          </div>
           <div>
             <span className="text-slate-500">Distance: </span>
             <span className="text-slate-300 font-mono">{robot?.total_distance || 0}</span>

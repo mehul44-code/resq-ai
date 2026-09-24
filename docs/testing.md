@@ -24,3 +24,14 @@ npm run build
 For a browser smoke test, run both services, open `http://localhost:5173`, select
 Competition Demo, start the mission, and verify the map, event timeline, AI
 decision panel, WebSocket updates, and final metrics.
+
+## Current warnings
+
+The backend suite currently reports two non-failing deprecation warnings:
+
+- Pydantic warns that the dependency's class-based configuration support will
+  be removed in a future major version.
+- `pytest-asyncio` warns about the repository's custom `event_loop` fixture.
+
+Neither warning is produced by the simulation behavior under test. They are
+documented rather than suppressed or changed as part of competition polish.

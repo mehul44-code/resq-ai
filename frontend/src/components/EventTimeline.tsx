@@ -32,8 +32,8 @@ function formatEventMessage(event: SimEvent): string {
     case 'fire_spread': return `Fire spread to ${data?.new_cells?.length || 0} new cell(s)`;
     case 'victim_rescued': return `Victim ${data?.victim_id} rescued! Health: ${data?.health_at_rescue?.toFixed(0) || '?'}%`;
     case 'rescue_completed': return `Rescue complete. Total rescued: ${data?.total_rescued || 0}`;
-    case 'replan_triggered': return `Replanning triggered: ${data?.reason || 'conditions changed'}`;
-    case 'path_invalidated': return `Path invalidated: ${data?.unsafe_cells || 0} cell(s) blocked`;
+    case 'replan_triggered': return `REPLANNING: ${data?.reason || 'conditions changed'}`;
+    case 'path_invalidated': return `PATH INVALIDATED: ${Array.isArray(data?.unsafe_cells) ? data.unsafe_cells.length : data?.unsafe_cells || 1} cell(s) blocked`;
     case 'path_planned': return `A* path planned: ${data?.path_length || 0} cells`;
     case 'triage_completed': return 'Triage completed';
     case 'mission_reassessment': return 'Mission reassessment started';
@@ -41,7 +41,9 @@ function formatEventMessage(event: SimEvent): string {
     case 'robot_moved': return data?.arrived_at_target ? 'Robot arrived at target' : `Robot at (${data?.position?.x},${data?.position?.y})`;
     case 'battery_updated': return `Battery: ${data?.battery?.toFixed(1) || '?'}%`;
     case 'mission_completed': return `Mission complete! Score: ${data?.mission_score?.toFixed(1) || '?'}`;
-    case 'simulation_started': return 'Simulation started';
+    case 'simulation_started': return 'MISSION STARTED';
+    case 'victim_detected': return `VICTIM DETECTED: ${data?.victim_id || '?'}`;
+    case 'mission_reassessment': return 'MISSION REASSESSMENT';
     default: return event_type.replace(/_/g, ' ');
   }
 }

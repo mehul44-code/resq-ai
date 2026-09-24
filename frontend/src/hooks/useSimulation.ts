@@ -30,7 +30,9 @@ export function useSimulation() {
     
     if (type === 'connection') {
       const status = isDecisionData(data) ? data.status : undefined;
-      store.setConnected(status === 'connected');
+      if (typeof status === 'string') {
+        store.setConnectionStatus(status as Parameters<typeof store.setConnectionStatus>[0]);
+      }
       return;
     }
 
@@ -49,9 +51,12 @@ export function useSimulation() {
         priority_score: Number(data.score || 0),
         reason_codes: Array.isArray(data.reason_codes) ? data.reason_codes.map(String) : [],
         explanation: String(data.explanation || ''),
-        battery_before: 0,
-        battery_after: 0,
+        battery_before: Number(data.battery_before || 0),
+        battery_after: Number(data.battery_after || 0),
         replan_required: Boolean(data.replan_required),
+        candidate_evaluations: Array.isArray(data.candidate_evaluations)
+          ? data.candidate_evaluations as DecisionLog['candidate_evaluations']
+          : [],
       };
       store.addDecision(decision);
     }
@@ -73,9 +78,10 @@ export function useSimulation() {
   
   useEffect(() => {
     if (!simulationId) return;
-    wsService.connect(simulationId);
     const unsub = wsService.on('*', handleWSEvent);
-    store.setConnected(false);
+    const unsubConnection = wsService.on('connection', handleWSEvent);
+    store.setConnectionStatus('CONNECTING');
+    wsService.connect(simulationId);
     
     // Fetch initial state
     Promise.all([
@@ -88,12 +94,17 @@ export function useSimulation() {
       store.setEvents(events);
       store.setDecisions(decisions);
       store.setMetrics(metrics);
-    }).catch(console.error);
+    }).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Unable to load simulation data';
+      store.setError(message);
+      console.error(error);
+    });
     
     return () => {
       unsub();
+      unsubConnection();
       wsService.disconnect();
-      store.setConnected(false);
+      store.setConnectionStatus('DISCONNECTED');
     };
   }, [simulationId]);
   
@@ -101,6 +112,7 @@ export function useSimulation() {
     try {
       const sim = await api.createSimulation(scenarioId);
       store.setSimulationId(sim.id);
+      store.setError(null);
       store.clearEvents();
       store.setMetrics(null);
       // WebSocket will connect via the useEffect above

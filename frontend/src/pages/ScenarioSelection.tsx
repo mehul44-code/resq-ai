@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSimulationStore } from '../stores/simulationStore';
 import { useSimulation } from '../hooks/useSimulation';
 import { api } from '../services/api';
@@ -14,15 +14,27 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 export const ScenarioSelection: React.FC = () => {
   const store = useSimulationStore();
   const sim = useSimulation();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    api.getScenarios().then(store.setScenarios).catch(console.error);
+    api.getScenarios().then(store.setScenarios).catch((cause: unknown) => {
+      setError(cause instanceof Error ? cause.message : 'Unable to load scenarios');
+    });
   }, []);
   
   const handleLaunch = async (scenarioId: string) => {
-    store.setSelectedScenario(scenarioId);
-    await sim.createAndStart(scenarioId);
-    store.setPage('mission');
+    setLoading(true);
+    setError(null);
+    try {
+      store.setSelectedScenario(scenarioId);
+      await sim.createAndStart(scenarioId);
+      store.setPage('mission');
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : 'Unable to start simulation');
+    } finally {
+      setLoading(false);
+    }
   };
   
   return (
@@ -47,7 +59,17 @@ export const ScenarioSelection: React.FC = () => {
           </button>
         </div>
         
-        <h2 className="text-xl font-bold mb-6 text-slate-200">Select Scenario</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-slate-200">Select Scenario</h2>
+          <button
+            disabled={loading}
+            onClick={() => handleLaunch('demo')}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-lg text-xs font-mono font-bold"
+          >
+            {loading ? 'STARTING...' : 'RUN COMPETITION DEMO'}
+          </button>
+        </div>
+        {error && <div className="mb-4 p-3 rounded-lg border border-red-800 bg-red-950/50 text-red-300 text-sm">{error}</div>}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {store.scenarios.map(scenario => (
@@ -71,10 +93,11 @@ export const ScenarioSelection: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-600 font-mono">Grid: {scenario.grid_cols}×{scenario.grid_rows}</span>
                 <button
+                  disabled={loading}
                   onClick={(e) => { e.stopPropagation(); handleLaunch(scenario.id); }}
                   className="px-3 py-1 bg-sky-700 hover:bg-sky-600 text-white text-xs rounded font-mono font-bold transition-colors"
                 >
-                  LAUNCH ▶
+                  {loading ? 'STARTING...' : 'LAUNCH ▶'}
                 </button>
               </div>
               {scenario.id === 'demo' && (

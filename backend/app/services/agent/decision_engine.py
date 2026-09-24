@@ -50,17 +50,19 @@ class DecisionEngine:
                 self._log_decision(decision, robot, timestamp, battery_before)
                 return decision
             decision = DecisionResult(
-                action=ActionType.AVOID_HAZARD,
+                action=ActionType.ABORT,
                 target=None,
                 priority=1.0,
                 score=100.0,
                 reason_codes=[ReasonCode.EMERGENCY_HAZARD],
-                explanation=f"EMERGENCY: {emergency_reason}",
+                explanation=f"EMERGENCY: {emergency_reason}. No safe escape route is available; aborting safely.",
                 path_result=None,
                 replan_required=True,
                 alternative_actions=[ActionType.RETURN_TO_BASE],
                 constraints_checked=["emergency_safety"],
             )
+            robot.status = RobotStatus.ABORTED
+            robot.current_action = ActionType.ABORT
             self._log_decision(decision, robot, timestamp, battery_before)
             return decision
         

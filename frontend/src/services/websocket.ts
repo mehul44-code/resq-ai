@@ -17,6 +17,7 @@ class SimulationWebSocket {
     this.disconnect();
     this.currentSimulationId = simId;
     this.reconnectAttempts = 0;
+    this._dispatchConnection('CONNECTING');
     this.open(simId);
   }
 
@@ -26,10 +27,7 @@ class SimulationWebSocket {
     this.ws.onopen = () => {
       console.log('[WS] Connected to simulation', simId);
       this.reconnectAttempts = 0;
-      this._dispatch('connection', {
-        type: 'connection',
-        data: { status: 'connected' },
-      });
+      this._dispatchConnection('CONNECTED');
       this.pingInterval = window.setInterval(() => {
         this.send({ action: 'ping' });
       }, 10000);
@@ -48,27 +46,30 @@ class SimulationWebSocket {
     this.ws.onclose = () => {
       console.log('[WS] Disconnected');
       if (this.pingInterval) clearInterval(this.pingInterval);
-      this._dispatch('connection', {
-        type: 'connection',
-        data: { status: 'disconnected' },
-      });
       if (this.currentSimulationId && this.reconnectAttempts < 5) {
+        this._dispatchConnection('RECONNECTING');
         const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 10000);
         this.reconnectAttempts += 1;
         this.reconnectTimer = window.setTimeout(
           () => this.currentSimulationId && this.open(this.currentSimulationId),
           delay,
         );
+      } else {
+        this._dispatchConnection('DISCONNECTED');
       }
     };
 
     this.ws.onerror = (e) => {
       console.error('[WS] Error:', e);
-      this._dispatch('connection', {
-        type: 'connection',
-        data: { status: 'error' },
-      });
+      this._dispatchConnection('ERROR');
     };
+  }
+
+  private _dispatchConnection(status: string): void {
+    this._dispatch('connection', {
+      type: 'connection',
+      data: { status },
+    });
   }
 
   disconnect(): void {
