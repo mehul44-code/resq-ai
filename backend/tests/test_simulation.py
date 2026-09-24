@@ -1,7 +1,7 @@
 import pytest
 import asyncio
 from app.services.simulation.simulation_manager import SimulationManager
-from app.services.simulation.types import SimulationStatus, RobotStatus
+from app.services.simulation.types import EventType, SimulationStatus, RobotStatus
 
 @pytest.fixture
 def manager():
@@ -98,3 +98,31 @@ async def test_metrics_calculation(manager):
     assert metrics["total_victims"] == 3
     assert "mission_score" in metrics
     assert 0 <= metrics["mission_score"] <= 100
+
+@pytest.mark.asyncio
+async def test_competition_demo_replans_after_fire_and_rescues_all(manager):
+    sim_id = manager.create_simulation("demo")
+    session = manager.get_simulation(sim_id)
+    session.initialize()
+
+    for _ in range(180):
+        await session.step_once()
+        if session.env.robot.status == RobotStatus.COMPLETED:
+            break
+
+    event_types = [event.event_type for event in session.all_events]
+    required = [
+        EventType.DECISION_CREATED,
+        EventType.PATH_PLANNED,
+        EventType.FIRE_SPREAD,
+        EventType.PATH_INVALIDATED,
+        EventType.REPLAN_TRIGGERED,
+        EventType.VICTIM_RESCUED,
+        EventType.RESCUE_COMPLETED,
+        EventType.MISSION_COMPLETED,
+    ]
+    positions = [event_types.index(event_type) for event_type in required]
+    assert positions == sorted(positions)
+    assert session.env.robot.victims_rescued == 3
+    assert session.env.robot.replans_count >= 1
+    assert session.get_metrics()["mission_completion_rate"] == 100.0

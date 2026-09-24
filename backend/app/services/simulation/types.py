@@ -115,6 +115,8 @@ class EventType(str, Enum):
     ROBOT_RETURNED_BASE = "robot_returned_base"
     CHARGING_STARTED = "charging_started"
     CHARGING_COMPLETED = "charging_completed"
+    TRIAGE_COMPLETED = "triage_completed"
+    MISSION_REASSESSMENT = "mission_reassessment"
 
 class SimulationStatus(str, Enum):
     IDLE = "IDLE"
@@ -184,6 +186,7 @@ class HazardState:
     spread_interval: int  # ticks between spreads
     last_spread_tick: int = 0
     affected_cells: List[Position] = field(default_factory=list)
+    max_spreads: Optional[int] = None
 
 @dataclass
 class RobotState:
@@ -195,6 +198,7 @@ class RobotState:
     status: RobotStatus
     current_target: Optional[str] = None  # victim id
     current_path: List[Position] = field(default_factory=list)
+    previous_path: List[Position] = field(default_factory=list)
     path_index: int = 0
     current_action: Optional[ActionType] = None
     base_position: Position = field(default_factory=lambda: Position(0, 0))
@@ -235,6 +239,7 @@ class DecisionResult:
     replan_required: bool
     alternative_actions: List[ActionType]
     constraints_checked: List[str]
+    candidate_evaluations: List[Dict[str, Any]] = field(default_factory=list)
 
 @dataclass
 class SimEvent:

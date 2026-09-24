@@ -81,6 +81,8 @@ class DisasterEnvironment:
                     cell.movement_cost_multiplier = 2.0
     
     def update_fire_spread(self, hazard: HazardState) -> List[Position]:
+        if hazard.max_spreads is not None and hazard.max_spreads <= 0:
+            return []
         if self.tick - hazard.last_spread_tick < hazard.spread_interval:
             return []
         
@@ -104,6 +106,8 @@ class DisasterEnvironment:
                     cell.is_passable = False
         
         hazard.last_spread_tick = self.tick
+        if hazard.max_spreads is not None:
+            hazard.max_spreads -= 1
         return new_cells
     
     def tick_update(self) -> List[SimEvent]:
@@ -236,6 +240,7 @@ class DisasterEnvironment:
             "battery": r.battery, "max_battery": r.max_battery,
             "status": r.status.value, "current_target": r.current_target,
             "current_path": [{"x": p.x, "y": p.y} for p in r.current_path],
+            "previous_path": [{"x": p.x, "y": p.y} for p in r.previous_path],
             "path_index": r.path_index, "current_action": r.current_action.value if r.current_action else None,
             "total_distance": r.total_distance, "battery_consumed": r.battery_consumed,
             "victims_rescued": r.victims_rescued, "replans_count": r.replans_count,

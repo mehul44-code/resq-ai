@@ -250,6 +250,18 @@ pytest tests/test_battery.py -v
 pytest tests/ --cov=app --cov-report=term-missing
 ```
 
+## Competition Demo
+
+The deterministic Competition Demo is documented in:
+
+- [`docs/competition-scenario.md`](docs/competition-scenario.md)
+- [`docs/demo-script.md`](docs/demo-script.md)
+- [`docs/testing.md`](docs/testing.md)
+
+It uses the real triage, A*, fire-spread, replanning, rescue, WebSocket, and
+metrics paths. Start both services, select **Competition Demo**, and press
+**START** in the dashboard.
+
 ---
 
 ## Scenario Configuration

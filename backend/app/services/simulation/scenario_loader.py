@@ -178,12 +178,13 @@ def _add_victim(env, vid, x, y, severity, health=80, urgency=0.5,
     env.add_victim(v)
     return v
 
-def _add_fire(env, hid, cells, intensity=0.8, spread_rate=0.3, spread_interval=8):
+def _add_fire(env, hid, cells, intensity=0.8, spread_rate=0.3, spread_interval=8, max_spreads=None):
     h = HazardState(
         id=hid, hazard_type=HazardType.FIRE,
         position=Position(*cells[0]), intensity=intensity,
         spread_rate=spread_rate, spread_interval=spread_interval,
-        affected_cells=[Position(x, y) for x, y in cells]
+        affected_cells=[Position(x, y) for x, y in cells],
+        max_spreads=max_spreads,
     )
     env.add_hazard(h)
     return h
@@ -292,8 +293,9 @@ def _build_demo(env: DisasterEnvironment):
     # Victim C: HIGH, far away (third target)
     _add_victim(env, "VC", 27, 15, Severity.HIGH, health=60, urgency=0.65, det_rate=0.025)
     
-    # Initial fire that will spread and block corridor route
-    _add_fire(env, "H_FIRE", [(12, 6)], intensity=0.9, spread_rate=0.7, spread_interval=6)
+    # The fire is placed beside the first planned route. With the fixed seed,
+    # its first spread invalidates that route before the critical victim is reached.
+    _add_fire(env, "H_FIRE", [(18, 4), (18, 6)], intensity=0.9, spread_rate=0.45, spread_interval=4, max_spreads=1)
     
     # Charging station
     env.set_cell_type(Position(1, 18), CellType.CHARGING_STATION)

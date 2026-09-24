@@ -49,6 +49,7 @@ export interface Robot {
   status: RobotStatus;
   current_target: string | null;
   current_path: Position[];
+  previous_path: Position[];
   path_index: number;
   current_action: ActionType | null;
   total_distance: number;
@@ -69,6 +70,15 @@ export interface DecisionLog {
   battery_before: number;
   battery_after: number;
   replan_required: boolean;
+  candidate_evaluations?: CandidateEvaluation[];
+}
+
+export interface CandidateEvaluation {
+  victim_id: string;
+  score: number;
+  breakdown: Record<string, number>;
+  reason_codes: string[];
+  selected: boolean;
 }
 
 export interface SimulationState {

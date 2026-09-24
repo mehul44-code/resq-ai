@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Robot, DecisionLog } from '../types';
+import type { Robot, DecisionLog, Victim } from '../types';
 import { clsx } from 'clsx';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -32,7 +32,7 @@ const ACTION_ICONS: Record<string, string> = {
 interface AIDecisionPanelProps {
   robot: Robot | null;
   lastDecision: DecisionLog | null;
-  victims: Record<string, any>;
+  victims: Record<string, Victim>;
 }
 
 export const AIDecisionPanel: React.FC<AIDecisionPanelProps> = ({ robot, lastDecision, victims }) => {
@@ -162,6 +162,24 @@ export const AIDecisionPanel: React.FC<AIDecisionPanelProps> = ({ robot, lastDec
           <div>
             <div className="text-orange-400 font-bold text-xs font-mono">REPLAN TRIGGERED</div>
             <div className="text-orange-300 text-xs">Conditions changed. Recalculating optimal path...</div>
+          </div>
+        </div>
+      )}
+
+      {lastDecision?.candidate_evaluations && lastDecision.candidate_evaluations.length > 0 && (
+        <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700">
+          <div className="text-xs text-slate-400 font-mono uppercase tracking-wider mb-2">Target Candidates</div>
+          <div className="space-y-1.5">
+            {lastDecision.candidate_evaluations.map(candidate => (
+              <div key={candidate.victim_id} className="flex items-center justify-between text-xs font-mono">
+                <span className={candidate.selected ? 'text-green-300 font-bold' : 'text-slate-300'}>
+                  {candidate.victim_id} {candidate.selected ? 'SELECTED' : 'DEFERRED'}
+                </span>
+                <span className={candidate.selected ? 'text-cyan-300' : 'text-slate-500'}>
+                  {candidate.score.toFixed(1)}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}

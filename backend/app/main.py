@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core.config import settings
@@ -33,8 +33,7 @@ app.add_middleware(
 app.include_router(router)
 
 @app.websocket("/ws/simulations/{sim_id}")
-async def websocket_route(websocket, sim_id: str):
-    from fastapi import WebSocket
+async def websocket_route(websocket: WebSocket, sim_id: str):
     await websocket_endpoint(websocket, sim_id)
 
 @app.get("/health")

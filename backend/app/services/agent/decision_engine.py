@@ -29,6 +29,26 @@ class DecisionEngine:
         # 1. Check for emergency conditions
         is_emergency, emergency_reason = self.safety.check_emergency_conditions(robot, self.env)
         if is_emergency:
+            escape_path = self.planner.find_path(robot.position, robot.base_position, robot.battery)
+            if escape_path.path:
+                decision = DecisionResult(
+                    action=ActionType.RETURN_TO_BASE,
+                    target=None,
+                    priority=1.0,
+                    score=100.0,
+                    reason_codes=[ReasonCode.EMERGENCY_HAZARD, ReasonCode.REPLAN_TRIGGERED],
+                    explanation=f"Emergency escape: {emergency_reason}. Returning to base on the safest available route.",
+                    path_result=escape_path,
+                    replan_required=True,
+                    alternative_actions=[ActionType.AVOID_HAZARD],
+                    constraints_checked=["emergency_safety", "escape_route"],
+                )
+                robot.status = RobotStatus.RETURNING_TO_BASE
+                robot.current_path = escape_path.path
+                robot.path_index = 0
+                robot.current_action = ActionType.RETURN_TO_BASE
+                self._log_decision(decision, robot, timestamp, battery_before)
+                return decision
             decision = DecisionResult(
                 action=ActionType.AVOID_HAZARD,
                 target=None,
@@ -217,6 +237,16 @@ class DecisionEngine:
             replan_required=False,
             alternative_actions=[ActionType.RESCUE_VICTIM] if len(priority_results) > 1 else [],
             constraints_checked=["route_safety", "battery_safety", "victim_reachability"],
+            candidate_evaluations=[
+                {
+                    "victim_id": result.victim_id,
+                    "score": round(result.score, 1),
+                    "breakdown": result.breakdown,
+                    "reason_codes": [code.value for code in result.reason_codes],
+                    "selected": result.victim_id == best.victim_id,
+                }
+                for result in priority_results
+            ],
         )
         
         robot.status = RobotStatus.MOVING
@@ -241,6 +271,7 @@ class DecisionEngine:
             "battery_before": battery_before,
             "battery_after": robot.battery,
             "replan_required": decision.replan_required,
+            "candidate_evaluations": decision.candidate_evaluations,
         }
         self.decision_history.append(entry)
         logger.info(f"[DECISION] tick={self.env.tick} action={decision.action.value} target={decision.target}")

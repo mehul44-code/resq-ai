@@ -13,6 +13,8 @@ const EVENT_STYLES: Record<string, { color: string; icon: string }> = {
   decision_created: { color: 'text-blue-400', icon: '🧠' },
   replan_triggered: { color: 'text-orange-400', icon: '🔄' },
   path_invalidated: { color: 'text-red-400', icon: '🚫' },
+  triage_completed: { color: 'text-yellow-400', icon: '📋' },
+  mission_reassessment: { color: 'text-cyan-400', icon: '🔎' },
   path_planned: { color: 'text-blue-400', icon: '📍' },
   battery_updated: { color: 'text-purple-400', icon: '🔋' },
   mission_completed: { color: 'text-emerald-400', icon: '🏆' },
@@ -32,6 +34,9 @@ function formatEventMessage(event: SimEvent): string {
     case 'rescue_completed': return `Rescue complete. Total rescued: ${data?.total_rescued || 0}`;
     case 'replan_triggered': return `Replanning triggered: ${data?.reason || 'conditions changed'}`;
     case 'path_invalidated': return `Path invalidated: ${data?.unsafe_cells || 0} cell(s) blocked`;
+    case 'path_planned': return `A* path planned: ${data?.path_length || 0} cells`;
+    case 'triage_completed': return 'Triage completed';
+    case 'mission_reassessment': return 'Mission reassessment started';
     case 'decision_created': return `AI: ${data?.action || '?'} → ${data?.target || 'no target'}`;
     case 'robot_moved': return data?.arrived_at_target ? 'Robot arrived at target' : `Robot at (${data?.position?.x},${data?.position?.y})`;
     case 'battery_updated': return `Battery: ${data?.battery?.toFixed(1) || '?'}%`;

@@ -69,6 +69,8 @@ class RobotController:
         if cell and not cell.is_passable:
             # Blocked! Need replan
             robot.status = RobotStatus.REPLANNING
+            robot.previous_path = list(robot.current_path)
+            robot.replans_count += 1
             robot.path_index = 0
             robot.current_path = []
             events.append(self._make_event(EventType.PATH_INVALIDATED, robot, {

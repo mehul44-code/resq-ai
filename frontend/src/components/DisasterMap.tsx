@@ -106,6 +106,21 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({ grid, robot, victims, 
     }
     
     // Draw planned path
+    if (robot?.previous_path?.length) {
+      ctx.strokeStyle = 'rgba(248, 113, 113, 0.85)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      robot.previous_path.forEach((p, i) => {
+        const px = p.x * cellW + cellW / 2;
+        const py = p.y * cellH + cellH / 2;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     if (robot?.current_path?.length) {
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
       ctx.lineWidth = 2;

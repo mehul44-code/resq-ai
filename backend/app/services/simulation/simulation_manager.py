@@ -3,7 +3,7 @@ import uuid
 import datetime
 from typing import Dict, List, Optional, Callable
 from app.services.simulation.types import (
-    SimulationStatus, RobotStatus, ActionType, EventType, SimEvent
+    SimulationStatus, RobotStatus, ActionType, EventType, SimEvent, ReasonCode
 )
 from app.services.simulation.environment import DisasterEnvironment
 from app.services.simulation.scenario_loader import build_scenario, SCENARIOS
@@ -92,7 +92,17 @@ class SimulationSession:
             data={"simulation_id": self.sim_id, "scenario_id": self.scenario_id},
             simulation_id=self.sim_id
         )
-        await self._broadcast_events([start_event])
+        detected_events = [
+            SimEvent(
+                event_type=EventType.VICTIM_DETECTED,
+                tick=0,
+                timestamp=self.started_at,
+                data={"victim_id": victim.id, "severity": victim.severity.value},
+                simulation_id=self.sim_id,
+            )
+            for victim in self.env.victims.values()
+        ]
+        await self._broadcast_events([start_event, *detected_events])
         
         self._task = asyncio.create_task(self._run_loop())
         logger.info(f"Simulation {self.sim_id} started")
@@ -133,13 +143,14 @@ class SimulationSession:
                 robot = self.env.robot
                 if robot and robot.status in (RobotStatus.COMPLETED, RobotStatus.ABORTED):
                     self.status = SimulationStatus.COMPLETED
-                    await self._broadcast_events([SimEvent(
-                        event_type=EventType.MISSION_COMPLETED,
-                        tick=self.env.tick,
-                        timestamp=datetime.datetime.now().isoformat(),
-                        data=self.get_metrics(),
-                        simulation_id=self.sim_id
-                    )])
+                    if not any(event.event_type == EventType.MISSION_COMPLETED for event in self.all_events):
+                        await self._broadcast_events([SimEvent(
+                            event_type=EventType.MISSION_COMPLETED,
+                            tick=self.env.tick,
+                            timestamp=datetime.datetime.now().isoformat(),
+                            data=self.get_metrics(),
+                            simulation_id=self.sim_id
+                        )])
                     break
                 
                 await self._execute_tick()
@@ -182,9 +193,46 @@ class SimulationSession:
                     },
                     simulation_id=self.sim_id
                 ))
+                if decision.candidate_evaluations and not any(
+                    event.event_type == EventType.TRIAGE_COMPLETED for event in self.all_events
+                ):
+                    events.append(SimEvent(
+                        event_type=EventType.TRIAGE_COMPLETED,
+                        tick=env.tick,
+                        timestamp=datetime.datetime.now().isoformat(),
+                        data={"candidate_count": len(decision.candidate_evaluations)},
+                        simulation_id=self.sim_id,
+                    ))
+                if decision.path_result and decision.path_result.path:
+                    events.append(SimEvent(
+                        event_type=EventType.PATH_PLANNED,
+                        tick=env.tick,
+                        timestamp=datetime.datetime.now().isoformat(),
+                        data={
+                            "target": decision.target,
+                            "path_length": len(decision.path_result.path),
+                            "outcome": decision.path_result.outcome.value,
+                        },
+                        simulation_id=self.sim_id,
+                    ))
+                if ReasonCode.REPLAN_TRIGGERED.value in [code.value for code in decision.reason_codes]:
+                    events.append(SimEvent(
+                        event_type=EventType.REPLAN_TRIGGERED,
+                        tick=env.tick,
+                        timestamp=datetime.datetime.now().isoformat(),
+                        data={"reason": decision.explanation, "target": decision.target},
+                        simulation_id=self.sim_id,
+                    ))
                 
                 if decision.action == ActionType.COMPLETE_MISSION:
                     self.status = SimulationStatus.COMPLETED
+                    events.append(SimEvent(
+                        event_type=EventType.MISSION_COMPLETED,
+                        tick=env.tick,
+                        timestamp=datetime.datetime.now().isoformat(),
+                        data=self.get_metrics(),
+                        simulation_id=self.sim_id,
+                    ))
             
             elif robot.status == RobotStatus.MOVING:
                 # Check if path still valid (fire may have spread)
@@ -195,6 +243,7 @@ class SimulationSession:
                         pass
                     if unsafe:
                         robot.status = RobotStatus.REPLANNING
+                        robot.previous_path = list(robot.current_path)
                         robot.replans_count += 1
                         events.append(SimEvent(
                             event_type=EventType.PATH_INVALIDATED,
@@ -217,6 +266,16 @@ class SimulationSession:
             ):
                 action_events = self.robot_controller.execute_action(robot, robot.current_action)
                 events.extend(action_events)
+                if any(event.event_type == EventType.VICTIM_RESCUED for event in action_events):
+                    events.append(SimEvent(
+                        event_type=EventType.MISSION_REASSESSMENT,
+                        tick=env.tick,
+                        timestamp=datetime.datetime.now().isoformat(),
+                        data={"remaining_victims": sum(
+                            1 for victim in env.victims.values() if not victim.rescued
+                        )},
+                        simulation_id=self.sim_id,
+                    ))
             
             # 4. Check charging
             if robot.status == RobotStatus.CHARGING:
