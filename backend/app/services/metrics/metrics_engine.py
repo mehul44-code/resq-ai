@@ -12,7 +12,7 @@ class MetricsEngine:
         critical_rescued = [v for v in rescued if v.severity == Severity.CRITICAL]
         
         rescue_times = [
-            (v.rescue_time - v.time_since_incident)
+            max(0, v.rescue_time - v.incident_start_tick)
             for v in rescued if v.rescue_time is not None
         ]
         avg_rescue_time = sum(rescue_times) / len(rescue_times) if rescue_times else 0

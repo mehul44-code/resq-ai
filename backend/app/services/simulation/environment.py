@@ -58,6 +58,8 @@ class DisasterEnvironment:
         return [p for p in candidates if 0 <= p.x < self.cols and 0 <= p.y < self.rows]
     
     def add_victim(self, victim: VictimState):
+        if victim.incident_start_tick == 0 and self.tick == 0:
+            victim.incident_start_tick = self.tick
         self.victims[victim.id] = victim
         cell = self.get_cell(victim.position)
         if cell and not victim.rescued:

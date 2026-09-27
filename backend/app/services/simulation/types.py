@@ -168,6 +168,7 @@ class VictimState:
     mobility_status: MobilityStatus
     time_since_incident: float  # ticks
     hazard_exposure: float  # 0-1
+    incident_start_tick: int = 0
     rescued: bool = False
     rescue_time: Optional[float] = None
     priority_score: float = 0.0

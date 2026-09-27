@@ -36,10 +36,9 @@ class AStarPlanner:
         return cost
     
     def find_path(self, start: Position, goal: Position, battery_available: float = float('inf')) -> PathResult:
-        if not self.env.is_passable(start) and start != self.env.robot.base_position:
-            # Allow starting from robot current position even if in smoke
-            pass
-        
+        # Start cells can be temporarily impassable (for example, the robot standing in a fire zone).
+        # The search should still begin from the current location and consider neighbor expansion rather
+        # than rejecting the route upfront with a dead no-op check.
         goal_cell = self.env.get_cell(goal)
         if goal_cell is None:
             return PathResult(outcome=PathOutcome.TARGET_UNREACHABLE, path=[], cost=float('inf'),

@@ -174,10 +174,11 @@ class SimulationSession:
         # 2. AI decision (check if replan needed or decide next action)
         if robot:
             if robot.status in (RobotStatus.IDLE, RobotStatus.SELECTING_TARGET,
-                                RobotStatus.REPLANNING, RobotStatus.ASSESSING):
+                                RobotStatus.REPLANNING, RobotStatus.ASSESSING,
+                                RobotStatus.MOVING):
                 decision = self.decision_engine.make_decision(robot)
                 robot.current_action = decision.action
-                
+
                 events.append(SimEvent(
                     event_type=EventType.DECISION_CREATED,
                     tick=env.tick,
@@ -215,6 +216,21 @@ class SimulationSession:
                         },
                         simulation_id=self.sim_id,
                     ))
+                path_invalidated = ReasonCode.PATH_INVALIDATED in decision.reason_codes
+                if not path_invalidated and robot.current_path and robot.path_index < len(robot.current_path):
+                    path_safe, unsafe_positions = env.check_path_safety(robot.current_path[robot.path_index:])
+                    path_invalidated = not path_safe and bool(unsafe_positions)
+                if path_invalidated:
+                    unsafe_cells = []
+                    if robot.current_path and robot.path_index < len(robot.current_path):
+                        _, unsafe_cells = self.env.check_path_safety(robot.current_path[robot.path_index:])
+                    events.append(SimEvent(
+                        event_type=EventType.PATH_INVALIDATED,
+                        tick=env.tick,
+                        timestamp=datetime.datetime.now().isoformat(),
+                        data={"unsafe_cells": [{"x": p.x, "y": p.y} for p in unsafe_cells], "reason": decision.explanation},
+                        simulation_id=self.sim_id,
+                    ))
                 if ReasonCode.REPLAN_TRIGGERED.value in [code.value for code in decision.reason_codes]:
                     events.append(SimEvent(
                         event_type=EventType.REPLAN_TRIGGERED,
@@ -223,9 +239,10 @@ class SimulationSession:
                         data={"reason": decision.explanation, "target": decision.target},
                         simulation_id=self.sim_id,
                     ))
-                
+
                 if decision.action == ActionType.COMPLETE_MISSION:
                     self.status = SimulationStatus.COMPLETED
+                    robot.status = RobotStatus.COMPLETED
                     events.append(SimEvent(
                         event_type=EventType.MISSION_COMPLETED,
                         tick=env.tick,
@@ -234,31 +251,17 @@ class SimulationSession:
                         simulation_id=self.sim_id,
                     ))
             
-            elif robot.status == RobotStatus.MOVING:
-                # Check if path still valid (fire may have spread)
-                if robot.current_path:
-                    remaining = robot.current_path[robot.path_index:]
-                    path_valid, unsafe = self.env.check_path_safety(remaining)
-                    if not unsafe:  # actually check unsafe list
-                        pass
-                    if unsafe:
-                        robot.status = RobotStatus.REPLANNING
-                        robot.previous_path = list(robot.current_path)
-                        robot.replans_count += 1
-                        events.append(SimEvent(
-                            event_type=EventType.PATH_INVALIDATED,
-                            tick=env.tick,
-                            timestamp=datetime.datetime.now().isoformat(),
-                            data={"unsafe_cells": [{"x": p.x, "y": p.y} for p in unsafe]},
-                            simulation_id=self.sim_id
-                        ))
-                        events.append(SimEvent(
-                            event_type=EventType.REPLAN_TRIGGERED,
-                            tick=env.tick,
-                            timestamp=datetime.datetime.now().isoformat(),
-                            data={"reason": "path_blocked", "unsafe_cells": len(unsafe)},
-                            simulation_id=self.sim_id
-                        ))
+            if robot.status == RobotStatus.COMPLETED and not any(
+                event.event_type == EventType.MISSION_COMPLETED for event in events
+            ):
+                self.status = SimulationStatus.COMPLETED
+                events.append(SimEvent(
+                    event_type=EventType.MISSION_COMPLETED,
+                    tick=env.tick,
+                    timestamp=datetime.datetime.now().isoformat(),
+                    data=self.get_metrics(),
+                    simulation_id=self.sim_id,
+                ))
             
             # 3. Execute robot action
             if robot.current_action and robot.status not in (

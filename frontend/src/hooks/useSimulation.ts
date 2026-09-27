@@ -15,15 +15,16 @@ function isDecisionData(value: unknown): value is Record<string, unknown> {
 export function useSimulation() {
   const store = useSimulationStore();
   const { simulationId } = store;
+  const { setConnected, setSimulationState, setDecisions, setConnectionStatus, setEvents, setMetrics, setError } = store;
 
   const handleWSEvent = useCallback((event: WebSocketEvent) => {
     const { type, data, tick, timestamp } = event;
     
     if (type === 'connected') {
-      store.setConnected(true);
+      setConnected(true);
       if (isSimulationState(event.state)) {
-        store.setSimulationState(event.state);
-        store.setDecisions(event.state.decision_history || []);
+        setSimulationState(event.state);
+        setDecisions(event.state.decision_history || []);
       }
       return;
     }
@@ -31,13 +32,14 @@ export function useSimulation() {
     if (type === 'connection') {
       const status = isDecisionData(data) ? data.status : undefined;
       if (typeof status === 'string') {
-        store.setConnectionStatus(status as Parameters<typeof store.setConnectionStatus>[0]);
+        setConnectionStatus(status as Parameters<typeof setConnectionStatus>[0]);
       }
       return;
     }
 
     if (type === 'tick_updated' && isSimulationState(data)) {
-      store.updateStateFromWS(data);
+      setSimulationState(data);
+      setDecisions(data.decision_history || []);
       return;
     }
     
@@ -58,12 +60,12 @@ export function useSimulation() {
           ? data.candidate_evaluations as DecisionLog['candidate_evaluations']
           : [],
       };
-      store.addDecision(decision);
+      useSimulationStore.getState().addDecision(decision);
     }
     
     // Add to event log
     if (type && type !== 'pong') {
-      store.addEvent({
+      useSimulationStore.getState().addEvent({
         event_type: type,
         tick: tick || 0,
         timestamp: timestamp || new Date().toISOString(),
@@ -72,15 +74,15 @@ export function useSimulation() {
     }
     
     if (type === 'mission_completed' && simulationId) {
-      api.getMetrics(simulationId).then(store.setMetrics).catch(console.error);
+      api.getMetrics(simulationId).then(setMetrics).catch(console.error);
     }
-  }, [simulationId]);
+  }, [simulationId, setConnected, setSimulationState, setDecisions, setConnectionStatus, setMetrics]);
   
   useEffect(() => {
     if (!simulationId) return;
     const unsub = wsService.on('*', handleWSEvent);
     const unsubConnection = wsService.on('connection', handleWSEvent);
-    store.setConnectionStatus('CONNECTING');
+    setConnectionStatus('CONNECTING');
     wsService.connect(simulationId);
     
     // Fetch initial state
@@ -90,13 +92,13 @@ export function useSimulation() {
       api.getDecisions(simulationId),
       api.getMetrics(simulationId),
     ]).then(([state, events, decisions, metrics]) => {
-      store.setSimulationState(state);
-      store.setEvents(events);
-      store.setDecisions(decisions);
-      store.setMetrics(metrics);
+      setSimulationState(state);
+      setEvents(events);
+      setDecisions(decisions);
+      setMetrics(metrics);
     }).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : 'Unable to load simulation data';
-      store.setError(message);
+      setError(message);
       console.error(error);
     });
     
@@ -104,17 +106,17 @@ export function useSimulation() {
       unsub();
       unsubConnection();
       wsService.disconnect();
-      store.setConnectionStatus('DISCONNECTED');
+      setConnectionStatus('DISCONNECTED');
     };
-  }, [simulationId]);
+  }, [simulationId, handleWSEvent, setConnectionStatus, setSimulationState, setEvents, setDecisions, setMetrics, setError]);
   
   const createAndStart = useCallback(async (scenarioId: string) => {
     try {
       const sim = await api.createSimulation(scenarioId);
-      store.setSimulationId(sim.id);
-      store.setError(null);
-      store.clearEvents();
-      store.setMetrics(null);
+      useSimulationStore.getState().setSimulationId(sim.id);
+      setError(null);
+      useSimulationStore.getState().clearEvents();
+      setMetrics(null);
       // WebSocket will connect via the useEffect above
       // Slight delay to let WS connect then start
       setTimeout(async () => {
@@ -125,7 +127,7 @@ export function useSimulation() {
       console.error('Failed to create simulation:', e);
       throw e;
     }
-  }, [store]);
+  }, [setError, setMetrics]);
   
   const pause = useCallback(async () => {
     if (!simulationId) return;
@@ -140,15 +142,15 @@ export function useSimulation() {
   const reset = useCallback(async () => {
     if (!simulationId) return;
     await api.resetSimulation(simulationId);
-    store.clearEvents();
+    useSimulationStore.getState().clearEvents();
   }, [simulationId]);
   
   const step = useCallback(async () => {
     if (!simulationId) return;
     await api.stepSimulation(simulationId);
     const state = await api.getState(simulationId);
-    store.setSimulationState(state);
-  }, [simulationId]);
+    setSimulationState(state);
+  }, [simulationId, setSimulationState]);
   
   const injectEvent = useCallback(async (eventType: string, data: any) => {
     if (!simulationId) return;

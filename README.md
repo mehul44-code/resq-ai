@@ -189,6 +189,24 @@ cd ../frontend
 npm install
 ```
 
+### Preview / CORS setup
+
+For Vite preview mode, allow the frontend origin used by the preview server. The backend reads a comma-separated `CORS_ORIGINS` list from `.env` and defaults to:
+
+```env
+CORS_ORIGINS=http://localhost:5173,http://localhost:4173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:4173
+```
+
+This is required when you run:
+
+```bash
+cd frontend
+npm run build
+npm run preview -- --host 0.0.0.0
+```
+
+Preview is typically served on `http://localhost:4173` and must be included in the backend CORS allowlist to load scenario data and WebSocket events correctly.
+
 ---
 
 ## Running the Backend
@@ -266,7 +284,7 @@ metrics paths. Start both services, select **Competition Demo**, and press
 
 ## Scenario Configuration
 
-ResQ-AI includes **10 built-in scenarios** plus a **Competition Demo**:
+ResQ-AI includes **11 scenario entries total**: 10 built-in scenarios plus the **Competition Demo**.
 
 | ID | Name | Difficulty | Description |
 |----|------|-----------|-------------|
@@ -281,6 +299,18 @@ ResQ-AI includes **10 built-in scenarios** plus a **Competition Demo**:
 | `scenario_09` | Changing Conditions | Expert | Fast fire spread, adaptability test |
 | `scenario_10` | No Safe Route | Expert | Graceful failure handling |
 | `demo` | Competition Demo | Medium | ⭐ Curated live demo scenario |
+
+### Phase 6 bug fixes and cleanup
+
+The project has been hardened for the Phase 6 regression pass:
+
+- `A1`: moving-robot invalidation now flows through the shared decision engine, so `PATH_INVALIDATED` creates a real replan decision entry and explanation instead of a dead inline branch.
+- `A2`: unreachable victims are excluded from triage and from move selection when no valid path exists, preventing instant “rescues” on empty routes.
+- `A3`: the A* planner no longer contains the misleading dead `pass` block; impassable start cells are handled explicitly as a valid search start, not a false “no-op”.
+- `A4`: rescue timing now measures from the victim’s `incident_start_tick`, so average rescue time reflects actual elapsed time instead of a near-zero tick offset.
+- `A5`: unused ML dependencies were removed from the backend requirements file.
+- `A6`: CORS now supports a comma-separated `CORS_ORIGINS` environment value, including the Vite preview port `4173`.
+- `A7`: the no-op unsafe check has been removed.
 
 ### Scenario Weights Configuration
 

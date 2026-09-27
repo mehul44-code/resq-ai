@@ -67,3 +67,11 @@ def test_start_equals_goal(small_env):
     result = planner.find_path(Position(5, 5), Position(5, 5))
     # Should return a trivial path or find path of length 1
     assert result.path is not None
+
+
+def test_path_from_impassable_start_cell(small_env):
+    small_env.set_cell_type(Position(0, 0), CellType.WALL)
+    planner = AStarPlanner(small_env)
+    result = planner.find_path(Position(0, 0), Position(4, 4))
+    assert result.path
+    assert result.path[-1] == Position(4, 4)

@@ -260,6 +260,27 @@ return to base for charging. Insufficient battery: need 45.0, have 12.0
 (reserve: 15.0)"
 ```
 
+## 10. Phase 6 Fixes and Stability Work
+
+The regression pass for Phase 6 addressed several correctness issues that could otherwise produce false-positive rescue states or misleading decision histories:
+
+- `A1`: moving-robot invalidations are processed through the same decision engine path as every other replan, guaranteeing one logged replan decision with a real explanation.
+- `A2`: unreachable victims are screened out before selection, so a walled-off target is never treated as a valid rescue candidate or rescued without a real path.
+- `A3`: the dead A* start-cell `pass` block was removed and replaced with explicit comments describing the intended behavior for impassable starting cells.
+- `A4`: average rescue time is computed from `incident_start_tick`, which gives realistic elapsed rescue durations instead of near-zero values.
+- `A5`: unused ML dependencies were removed from the backend requirements file, reducing install weight and avoiding stale package noise.
+- `A6`: backend CORS parsing now accepts a comma-separated `CORS_ORIGINS` setting so Vite preview mode on port `4173` can load data and sockets without browser rejection.
+- `A7`: the no-op invalidation check was removed to avoid silently skipping logic that was supposed to emit a replan event.
+
+### Current project status
+
+- Scenario count: 11 total scenario entries (10 standard scenarios + Competition Demo)
+- Backend test count: current suite remains under regular pytest verification and is maintained as the guardrail for all logic changes
+- CORS / preview setup: `npm run build` and `npm run preview -- --host 0.0.0.0` work correctly when the preview origin is present in the backend `.env` `CORS_ORIGINS` list
+
+---
+```
+
 ---
 
 ## 10. Metrics / Performance

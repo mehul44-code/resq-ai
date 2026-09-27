@@ -131,27 +131,29 @@ class DecisionEngine:
         if robot.status == RobotStatus.MOVING and robot.current_path:
             remaining_path = robot.current_path[robot.path_index:]
             path_still_valid, unsafe_positions = self.safety.check_path_still_valid(remaining_path, self.env)
-            
+
             if not path_still_valid:
-                # Trigger replan
+                robot.previous_path = list(robot.current_path)
+                robot.status = RobotStatus.REPLANNING
+                robot.replans_count += 1
                 decision = DecisionResult(
                     action=ActionType.REPLAN,
                     target=robot.current_target,
                     priority=0.9,
                     score=90.0,
                     reason_codes=[ReasonCode.PATH_INVALIDATED, ReasonCode.REPLAN_TRIGGERED],
-                    explanation=f"Current path invalidated: {len(unsafe_positions)} cell(s) blocked. Replanning...",
+                    explanation=(
+                        f"Current path invalidated: {len(unsafe_positions)} cell(s) blocked "
+                        f"({', '.join(f'({p.x},{p.y})' for p in unsafe_positions[:3])}{'...' if len(unsafe_positions) > 3 else ''}). Replanning..."
+                    ),
                     path_result=None,
                     replan_required=True,
                     alternative_actions=[ActionType.MOVE_TO_TARGET, ActionType.RETURN_TO_BASE],
                     constraints_checked=["path_validity"],
                 )
-                robot.status = RobotStatus.REPLANNING
-                robot.replans_count += 1
                 self._log_decision(decision, robot, timestamp, battery_before)
                 return decision
-            
-            # Path still valid, continue moving
+
             return DecisionResult(
                 action=ActionType.MOVE_TO_TARGET,
                 target=robot.current_target,
@@ -193,7 +195,25 @@ class DecisionEngine:
         
         # 7. Plan path to best victim
         path_result = self.planner.find_path(robot.position, best_victim.position, robot.battery)
-        
+        if not path_result.path or path_result.outcome == PathOutcome.TARGET_UNREACHABLE:
+            decision = DecisionResult(
+                action=ActionType.RETURN_TO_BASE,
+                target=None,
+                priority=0.7,
+                score=70.0,
+                reason_codes=[ReasonCode.NO_SAFE_ROUTE],
+                explanation="All remaining victims are unreachable. Returning to base.",
+                path_result=path_to_base,
+                replan_required=False,
+                alternative_actions=[ActionType.WAIT],
+                constraints_checked=["victim_reachability"],
+            )
+            robot.status = RobotStatus.RETURNING_TO_BASE
+            robot.current_path = path_to_base.path
+            robot.path_index = 0
+            self._log_decision(decision, robot, timestamp, battery_before)
+            return decision
+
         # 8. Safety check on chosen path
         is_route_safe, route_violations = self.safety.check_route_safety(path_result, self.env)
         is_battery_safe, battery_reason = self.safety.check_battery_safety(robot, path_result.battery_required + settings.RESCUE_BATTERY_COST + base_cost)

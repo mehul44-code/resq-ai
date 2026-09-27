@@ -13,15 +13,16 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 
 export const ScenarioSelection: React.FC = () => {
   const store = useSimulationStore();
+  const { setScenarios } = store;
   const sim = useSimulation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    api.getScenarios().then(store.setScenarios).catch((cause: unknown) => {
+    api.getScenarios().then(setScenarios).catch((cause: unknown) => {
       setError(cause instanceof Error ? cause.message : 'Unable to load scenarios');
     });
-  }, []);
+  }, [setScenarios]);
   
   const handleLaunch = async (scenarioId: string) => {
     setLoading(true);
@@ -38,74 +39,66 @@ export const ScenarioSelection: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
-      {/* Header */}
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+    <div className="selection-page text-slate-100">
+      <div className="selection-frame">
+        <header className="product-bar">
+          <button className="brand-lockup" onClick={() => store.setPage('mission')} aria-label="Open mission dashboard">
+            <span className="brand-mark">R</span>
+            <span><strong>RESQ-AI</strong><small>Autonomous disaster response</small></span>
+          </button>
+          <div className="product-status"><span className="status-dot" /> SYSTEM READY <span className="status-divider" /> API CONNECTIVITY</div>
+          <button onClick={() => store.setPage('mission')} className="quiet-button">Open dashboard</button>
+        </header>
+
+        <section className="selection-hero">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 bg-sky-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold">R</span>
-              </div>
-              <h1 className="text-2xl font-bold text-sky-400">ResQ-AI</h1>
-            </div>
-            <p className="text-slate-400">AI Rescue Robot — Disaster Management Agent</p>
+            <p className="eyebrow">Mission control / scenario library</p>
+            <h1>Choose the environment.<br /><span>Let the agent decide.</span></h1>
+            <p className="hero-copy">Deploy an autonomous rescue robot into a live, hazard-aware environment. Every route, triage decision, and replan is recorded for review.</p>
           </div>
-          <button
-            onClick={() => store.setPage('mission')}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-mono transition-colors"
-          >
-            ← Back to Mission
+          <button disabled={loading} onClick={() => handleLaunch('demo')} className="demo-button">
+            <span className="demo-icon">▶</span><span>{loading ? 'INITIALIZING...' : 'RUN COMPETITION DEMO'}<small>Recommended mission</small></span>
           </button>
-        </div>
-        
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-200">Select Scenario</h2>
-          <button
-            disabled={loading}
-            onClick={() => handleLaunch('demo')}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-lg text-xs font-mono font-bold"
-          >
-            {loading ? 'STARTING...' : 'RUN COMPETITION DEMO'}
-          </button>
-        </div>
+        </section>
+
+        <div className="selection-meta"><span>AVAILABLE SCENARIOS <strong>{store.scenarios.length || '—'}</strong></span><span>AI ENGINE <strong>ONLINE</strong></span><span>PLANNER <strong>A* / HAZARD-AWARE</strong></span></div>
         {error && <div className="mb-4 p-3 rounded-lg border border-red-800 bg-red-950/50 text-red-300 text-sm">{error}</div>}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="scenario-grid">
           {store.scenarios.map(scenario => (
             <div
               key={scenario.id}
               className={clsx(
-                'bg-slate-800/60 rounded-xl p-4 border cursor-pointer transition-all hover:scale-[1.02]',
+                'scenario-card cursor-pointer transition-all',
                 store.selectedScenarioId === scenario.id 
-                  ? 'border-sky-500 ring-1 ring-sky-500' 
-                  : 'border-slate-700 hover:border-slate-500'
+                  ? 'scenario-card-selected' 
+                  : ''
               )}
               onClick={() => store.setSelectedScenario(scenario.id)}
             >
-              <div className="flex items-start justify-between mb-2">
-                <div className="text-sm font-bold text-slate-100">{scenario.name}</div>
-                <span className={clsx('text-xs px-2 py-0.5 rounded border font-mono', DIFFICULTY_COLORS[scenario.difficulty])}>
+              <div className="scenario-card-top">
+                <span className="scenario-index">0{store.scenarios.indexOf(scenario) + 1}</span>
+                <span className={clsx('difficulty-pill', DIFFICULTY_COLORS[scenario.difficulty])}>
                   {scenario.difficulty}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mb-3 leading-relaxed">{scenario.description}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-600 font-mono">Grid: {scenario.grid_cols}×{scenario.grid_rows}</span>
+              <div className="scenario-name">{scenario.name}</div>
+              <p className="scenario-description">{scenario.description}</p>
+              <div className="scenario-card-footer">
+                <span className="scenario-grid-size">GRID {scenario.grid_cols} × {scenario.grid_rows}</span>
                 <button
                   disabled={loading}
                   onClick={(e) => { e.stopPropagation(); handleLaunch(scenario.id); }}
-                  className="px-3 py-1 bg-sky-700 hover:bg-sky-600 text-white text-xs rounded font-mono font-bold transition-colors"
+                  className="launch-button"
                 >
                   {loading ? 'STARTING...' : 'LAUNCH ▶'}
                 </button>
               </div>
-              {scenario.id === 'demo' && (
-                <div className="mt-2 text-xs text-yellow-400 font-mono">⭐ Competition Demo Mode</div>
-              )}
+              {scenario.id === 'demo' && <div className="scenario-tag">★ CURATED DEMO ENVIRONMENT</div>}
             </div>
           ))}
         </div>
+        {!store.scenarios.length && <div className="empty-scenarios">Connect to the simulation service to load mission environments.</div>}
       </div>
     </div>
   );

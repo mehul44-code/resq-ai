@@ -174,16 +174,18 @@ export const AIDecisionPanel: React.FC<AIDecisionPanelProps> = ({ robot, lastDec
         <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700">
           <div className="text-xs text-slate-400 font-mono uppercase tracking-wider mb-2">Target Candidates</div>
           <div className="space-y-1.5">
-            {lastDecision.candidate_evaluations.map(candidate => (
-              <div key={candidate.victim_id} className="flex items-center justify-between text-xs font-mono">
-                <span className={candidate.selected ? 'text-green-300 font-bold' : 'text-slate-300'}>
-                  {candidate.victim_id} {candidate.selected ? 'SELECTED' : 'DEFERRED'}
-                </span>
-                <span className={candidate.selected ? 'text-cyan-300' : 'text-slate-500'}>
-                  {candidate.score.toFixed(1)}
-                </span>
-              </div>
-            ))}
+              {[...lastDecision.candidate_evaluations].sort((a, b) => b.score - a.score).map((candidate, index) => {
+                const maxScore = Math.max(...lastDecision.candidate_evaluations!.map(item => item.score), 1);
+                const victim = victims[candidate.victim_id];
+                return (
+                  <div key={candidate.victim_id} className={clsx('candidate-row', candidate.selected && 'candidate-selected')}>
+                    <div className="candidate-topline"><span className="candidate-rank">0{index + 1}</span><strong>{candidate.victim_id}</strong>{victim && <span className={clsx('candidate-severity', `severity-${victim.severity.toLowerCase()}`)}>{victim.severity}</span>}<span className="candidate-decision">{candidate.selected ? 'SELECTED' : 'DEFERRED'}</span><b>{candidate.score.toFixed(1)}</b></div>
+                    <div className="candidate-score-track"><span style={{ width: `${Math.max(4, (candidate.score / maxScore) * 100)}%` }} /></div>
+                    {candidate.reason_codes.length > 0 && <div className="candidate-factors">{candidate.reason_codes.slice(0, 4).map(reason => <span key={reason}>{reason.replace(/_/g, ' ')}</span>)}</div>}
+                    {candidate.selected && <div className="candidate-verdict">Highest utility under current risk and battery constraints</div>}
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}

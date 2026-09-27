@@ -36,14 +36,13 @@ function formatEventMessage(event: SimEvent): string {
     case 'path_invalidated': return `PATH INVALIDATED: ${Array.isArray(data?.unsafe_cells) ? data.unsafe_cells.length : data?.unsafe_cells || 1} cell(s) blocked`;
     case 'path_planned': return `A* path planned: ${data?.path_length || 0} cells`;
     case 'triage_completed': return 'Triage completed';
-    case 'mission_reassessment': return 'Mission reassessment started';
+    case 'mission_reassessment': return 'MISSION REASSESSMENT';
     case 'decision_created': return `AI: ${data?.action || '?'} → ${data?.target || 'no target'}`;
     case 'robot_moved': return data?.arrived_at_target ? 'Robot arrived at target' : `Robot at (${data?.position?.x},${data?.position?.y})`;
     case 'battery_updated': return `Battery: ${data?.battery?.toFixed(1) || '?'}%`;
     case 'mission_completed': return `Mission complete! Score: ${data?.mission_score?.toFixed(1) || '?'}`;
     case 'simulation_started': return 'MISSION STARTED';
     case 'victim_detected': return `VICTIM DETECTED: ${data?.victim_id || '?'}`;
-    case 'mission_reassessment': return 'MISSION REASSESSMENT';
     default: return event_type.replace(/_/g, ' ');
   }
 }

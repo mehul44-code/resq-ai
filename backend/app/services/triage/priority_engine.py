@@ -93,9 +93,11 @@ class VictimTriageEngine:
             if victim.rescued or not victim.is_alive():
                 continue
             path_result = planner.find_path(robot.position, victim.position, robot.battery)
+            if path_result is None or not path_result.path or path_result.outcome == PathOutcome.TARGET_UNREACHABLE:
+                continue
             priority = self.calculate_priority(victim, robot, path_result, env)
             victim.priority_score = priority.score
             results.append(priority)
-        
+
         results.sort(key=lambda r: r.score, reverse=True)
         return results

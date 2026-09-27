@@ -14,7 +14,7 @@ export default function App() {
     api.getScenarios().then(setScenarios).catch(() => {
       console.warn('Backend not available - running in offline mode');
     });
-  }, []);
+  }, [setScenarios]);
   
   // Navigation bar
   const navItems = [
@@ -34,20 +34,22 @@ export default function App() {
   };
   
   return (
-    <div className="relative">
+    <div className="app-root">
       {/* Page Content */}
-      {pages[currentPage] || <MissionDashboard />}
+      <div className={currentPage === 'mission' ? 'app-page' : 'app-page app-page-with-nav'}>
+        {pages[currentPage] || <MissionDashboard />}
+      </div>
       
       {/* Fixed Nav (shown on non-mission pages) */}
       {currentPage !== 'mission' && (
-        <nav className="fixed top-0 left-0 right-0 z-50 flex items-center gap-1 bg-slate-900/95 backdrop-blur px-4 py-2 border-b border-slate-700">
-          <div className="text-sky-400 font-bold text-sm mr-4">ResQ-AI</div>
+        <nav className="fixed top-0 left-0 right-0 z-50 app-nav">
+          <button className="nav-brand" onClick={() => setPage('mission')}><span className="brand-mark">R</span> ResQ-AI</button>
           {navItems.map(({ page, label }) => (
             <button
               key={page}
               onClick={() => setPage(page)}
-              className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
-                currentPage === page ? 'bg-sky-800 text-sky-200' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              className={`nav-item ${
+                currentPage === page ? 'nav-item-active' : ''
               }`}
             >
               {label}
