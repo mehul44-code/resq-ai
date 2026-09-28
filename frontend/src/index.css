@@ -227,35 +227,103 @@ button {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
   overflow: hidden;
-  padding: 16px;
+  padding: 0;
   border: 1px solid #1e293b;
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(8, 15, 30, 0.98));
 }
 
 .ai-panel-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
   height: 100%;
+  min-width: 0;
+  gap: 0;
 }
 
 .ai-panel-section {
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
+  padding: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.ai-panel-section:first-child {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  padding-bottom: 12px;
 }
 
 .ai-panel-tabs {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
   min-width: 0;
   overflow: hidden;
   border-top: 1px solid rgba(148, 163, 184, 0.2);
-  padding-top: 12px;
+  padding: 0;
+  gap: 0;
+}
+
+.ai-panel-tabs > div:first-child {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  padding: 0;
+  gap: 0;
+}
+
+.ai-panel-tabs > div:first-child > button {
+  padding: 8px 12px;
+  font-size: 11px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.ai-panel-tabs > div:first-child > button:hover {
+  background: rgba(148, 163, 184, 0.05);
+  color: #cbd5e1;
+}
+
+.ai-panel-tabs > div:first-child > button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Tab active state */
+.ai-panel-tabs > div:first-child > button[class*='bg-slate-800'] {
+  background: #1e293b;
+  color: #38bdf8;
+  border-bottom-color: #38bdf8;
+}
+
+.ai-panel-tabs > div:last-child {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+}
+
+.ai-decision-panel-grid {
+  display: grid;
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.ai-decision-panel-grid > div:nth-child(n+6) {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .dashboard-bottom {
@@ -325,44 +393,6 @@ button {
   overflow-x: hidden;
 }
 
-/* Candidate evaluation compact styles */
-.candidate-row-compact {
-  padding: 6px 8px;
-  border: 1px solid rgba(148, 163, 184, 0.1);
-  border-radius: 6px;
-  background: rgba(30, 41, 59, 0.4);
-  transition: all 0.2s ease;
-}
-
-.candidate-row-compact:hover {
-  background: rgba(30, 41, 59, 0.6);
-  border-color: rgba(148, 163, 184, 0.2);
-}
-
-.candidate-row-compact.candidate-selected {
-  border-color: rgba(56, 189, 248, 0.5);
-  background: rgba(56, 189, 248, 0.08);
-}
-
-.candidate-topline-compact {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.candidate-score-track-compact {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.candidate-factors-compact {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
 @media (max-width: 1100px) {
   .dashboard-header { grid-template-columns: 1fr auto; }
   .header-scenario { display: none; }
@@ -391,9 +421,9 @@ button {
   .metrics-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; padding: 6px; }
   .metrics-strip > div { padding: 5px 6px; }
   .metrics-strip .text-lg { font-size: 13px; }
-  .ai-panel { padding: 10px; gap: 8px; }
-  .ai-panel-stack { gap: 8px; }
-  .ai-panel-section:first-child { overflow: auto; }
+  .ai-panel { padding: 0; gap: 0; }
+  .ai-panel-stack { gap: 0; }
+  .ai-panel-section { padding: 8px; }
 }
 
 @media (max-height: 600px) and (min-width: 600px) {
@@ -401,8 +431,9 @@ button {
   .dashboard-header .text-\[11px\] { display: none; }
   .dashboard-main { grid-template-columns: minmax(0, 1.35fr) minmax(230px, .8fr); gap: 8px; padding: 8px 14px; overflow: hidden; }
   .map-panel { min-height: 0; }
-  .ai-panel { max-height: none; padding: 9px; gap: 8px; }
-  .ai-panel-stack { gap: 8px; }
+  .ai-panel { max-height: none; padding: 0; gap: 0; }
+  .ai-panel-stack { gap: 0; }
+  .ai-panel-section { padding: 8px; }
   .dashboard-bottom { grid-template-columns: 1fr; padding: 0 14px 7px; }
   .timeline-panel { display: none; }
   .metrics-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; padding: 5px; }
